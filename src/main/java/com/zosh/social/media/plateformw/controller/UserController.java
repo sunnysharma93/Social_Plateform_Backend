@@ -1,86 +1,75 @@
 package com.zosh.social.media.plateformw.controller;
 
+import com.zosh.social.media.plateformw.exception.UserException;
 import com.zosh.social.media.plateformw.models.User;
+import com.zosh.social.media.plateformw.repository.UserRepository;
+import com.zosh.social.media.plateformw.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class UserController {
 
-    @GetMapping("/users")
+    @Autowired
+    UserRepository userRepository;
 
+    @Autowired
+    UserService userService;
+
+
+
+    @GetMapping("/api/users")
     // retrun type list of users
     public List<User> getUsers(){
 
-        // liat of array
-        List<User> users = new ArrayList<>();
 
-        // class users data with the help of allargsconstructure
-        User user1 = new User(1 ,"code","zosh","codewith@gamil.com","12345");
-        User user2 = new User(2,"sunny","sharma","sunnysharma.org1@gmail.com","12345678");
-        User user3 = new User(3,"sunder","yadav","sunnysharma.org1@gmail.com","12345678");
-
-        // add usrs
-        users.add(user1);
-        users.add(user2);
-        users.add(user3);
-
-        // return users
+        List<User> users = userRepository.findAll();
         return users;
-
     }
-    @GetMapping("/users/{userId}")
+    @GetMapping("/api/users/{userId}")
 
     // retrun type list of users
-    public User getUserbyId(@PathVariable("userId") Integer id){
-
-
-        // class users data with the help of allargsconstructure
-        User user1 = new User(1 ,"code","zosh","codewith@gamil.com","12345");
-        // add usrs
-
-        user1.setId(id);
-        // return users
-        return user1;
-    }
-    @PostMapping("/users")
-    public  User createUser(@RequestBody User user){
-
-        User newUser = new User();
-        newUser.setEmail(user.getEmail());
-        newUser.setName(user.getName());
-        newUser.setLastName(user.getLastName());
-        newUser.setPassword(user.getPassword());
-        newUser.setId(user.getId());
-
-        return newUser;
+    public User getUserbyId(@PathVariable("userId") Integer id) throws UserException {
+        User user = userService.findUserById(id);
+        return user;
     }
 
-    @PutMapping("/users")
-    public User updateUser(@RequestBody User user){
 
-        User user1 = new User(1 ,"code","zosh","codewith@gamil.com","12345");
+    @PutMapping("/api/users")
+    public User updateUser(@RequestHeader ("Authorization") String jwt,@RequestBody User user) throws UserException {
 
-        if(user.getName()!=null){
-            user1.setName(user.getName());
-        }
-        if(user.getLastName()!=null){
-            user1.setLastName(user.getLastName());
-        }
-        if(user.getEmail()!=null){
-            user1.setEmail(user.getEmail());
-        }
+        User reqUser = userService.findUserByJwt(jwt);
+      User updatedUser = userService.updateUser(user, reqUser.getId());
 
-        return user1;
-    }
-
-    @DeleteMapping("users/{userId}")
-    public String deleteUser(@PathVariable("userId") Integer userId){
-
-
-        return "user deleted successfully" + userId;
+      return  updatedUser;
 
     }
+
+    @PutMapping("/api/users/follow/{userId2}")
+    public User followUserHandler(@RequestHeader ("Authorization") String jwt,@PathVariable Integer userId2) throws UserException {
+
+        User reqUser = userService.findUserByJwt(jwt);
+        User user = userService.followUser(reqUser.getId(), userId2);
+        return user;
+    }
+
+    @GetMapping("/api/users/search")
+    public List<User> searchUser(@RequestParam("query") String query){
+        List<User> users = userService.searchUser(query);
+                return users;
+    }
+
+    @GetMapping("/api/users/profile")
+    public User getUserFromToken(@RequestHeader ("Authorization") String jwt){
+
+        User user = userService.findUserByJwt(jwt);
+
+        user.setPassword(null);
+        return user;
+
+    }
+
 }
